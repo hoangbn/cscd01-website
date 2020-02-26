@@ -1,2 +1,2 @@
-# cscd01-website
+# Website
 Website for CSCD01 Deliverables
