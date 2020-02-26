@@ -109,11 +109,12 @@ h1{
 	width: 150px;
 }
 
-#deliverable1 p, li, table {
+#deliverable1 p, table {
 	font-size: 18px;
 }
 
 #deliverable1 li {
+	font-size: 18px;
 	margin-bottom: 5px;
 }
 
