@@ -153,11 +153,13 @@ td {
     padding: 10px;
 }
 
-#deliverable2 {
+#deliverable2,
+#deliverable3 {
     font-size: 18px;
 }
 
-#deliverable2 img {
+#deliverable2 img,
+#deliverable3 img {
     width: 100%
 }
 
