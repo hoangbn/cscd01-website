@@ -721,8 +721,10 @@
                 </p>
 
                 <p>
-                    Code Change: Inside the maybe_promote methods, casting NaT Datetime that is tz unaware into a tz aware Datetime will prevent the eventual mismatch and will not throw a type error. Get_loc for tz aware date range at this point will behave similarly as
-                    tz unaware dates
+                    <b>Code Change:</b> Inside the _maybe_promote method, casting NaT Datetime that is tz unaware into a tz aware Datetime will prevent the eventual mismatch and will not throw a type error. Get_loc for tz aware date range at this point
+                    will behave similarly as tz unaware dates. <a href="https://github.com/CSCD01-team14/pandas/blob/3059a2bfdebfc8fe1d8502039668dfacdf2cefb5/pandas/core/indexes/datetimes.py#L529">_maybe_promote</a> function inside the datetimes.py is
+                    a potential location where this change could be applied, the tz of dates in date range can be used to promote the tz unware NaT when ever the target date does not have a tz.
+                </p>
 
                 </p>
 
