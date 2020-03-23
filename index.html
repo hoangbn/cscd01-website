@@ -47,8 +47,15 @@
                     <li><a href="#about">about</a></li>
                     <li><a href="#skills">team</a></li>
                     <li><a href="#agreement">agreement</a></li>
-                    <li><a href="#deliverable1">deliverable 1</a></li>
-                    <li><a href="#deliverable2">deliverable 2</a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Deliverables <span class="caret"></span></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="#deliverable3">deliverable 3</a></li>
+                            <li><a href="#deliverable2">deliverable 2</a></li>
+                            <li><a href="#deliverable1">deliverable 1</a></li>
+                        </ul>
+                    </li>
+
                 </ul>
             </div>
         </div>
@@ -396,6 +403,7 @@
         </p>
 
     </div>
+    <!-- deliverable 2 -->
     <hr class="style1">
     <div class="container-fluid wide" id="deliverable2" style="background-color: #CCDDCE; height: auto;">
         <h1 class="text-center">Deliverable 2</h1>
@@ -421,7 +429,7 @@
         </div>
 
         <!-- issue 2 -->
-        <div class="panel" style="background-color: #CCDDCE; height: auto;">
+        <div class="panel" id="get-loc" style="background-color: #CCDDCE; height: auto;">
             <div class="panel-heading"><b>Issue 2:</b> BUG: get_loc / get_indexer with NaT and tz-aware DatetimeIndex
             </div>
             <div class="panel-body">
@@ -677,6 +685,188 @@
         </section>
 
     </div>
+
+    <!-- deliverable 3 -->
+    <hr class="style1">
+    <div class="container-fluid wide" id="deliverable3" style="background-color: #CCDDCE; height: auto;">
+        <h1 class="text-center">Deliverable 3</h1>
+
+        <h2>Descriptions of Two selected issues/features</h2>
+
+        <!-- issue 1 -->
+        <div class="panel" style="background-color: #CCDDCE; height: auto;">
+            <div class="panel-heading"><b> BUG: </b> get_loc / get_indexer with NaT and tz-aware DatetimeIndex
+            </div>
+            <div class="panel-body">
+                <p>
+                    <a href="https://github.com/pandas-dev/pandas/issues/32572" target="_blank">https://github.com/pandas-dev/pandas/issues/32572</a>
+                </p>
+                <p>
+                    Upon dropping this issue in <a href="#get-loc">previous deliverable</a> due the complexity and unexplored territory of handling operations on DateTimeIndex. The fix to this issue seemed as simple as adding additional login to get_indexer,
+                    where we can handle the case for NaT such that instead of searching for the “nearest” location of NaT, the get_loc function would return NaT since, it undefined behaviour to look for a time closest to “Not A Time”.
+
+                </p>
+                <p>
+                    However, there is more to this since an additional issue is that when the data range is tz aware, a TypeError exception occurs. This is because the get_loc function returns the location of a target by recursively calling get_indexer on the left and right
+                    of the DateTimeIndex and keeps subtracting the target from the Objects in the DateTimeIndex. Although this behavior returns a “0” for tz unaware dates , which by itself is inaccurate, the same behaviour is not replicated for tz aware
+                    dates due to an unhandled case.
+
+                </p>
+
+                <p>
+                    Consider searching for NaT in a tz aware date range. In this scenario, a dtype mismatch occurs between the objects in the DatetimeIndex and the target of the search. This is mainly because the NaT Datetime is not tz aware by default. Because of this reason
+                    both the Indexes (the date range and the target) are casted as dtype Objects inside the get_indexer function. This will not work for the indexer since the indexer is subtracting the target from the objects in the Date range. During
+                    the subtraction the Datetime Target Object is converted into DatetimeArray which cannot be subtracted from ndArray which holds the Date range
+
+                </p>
+
+                <p>
+                    <b>Code Change:</b> Inside the _maybe_promote method, casting NaT Datetime that is tz unaware into a tz aware Datetime will prevent the eventual mismatch and will not throw a type error. Get_loc for tz aware date range at this point
+                    will behave similarly as tz unaware dates. <a href="https://github.com/CSCD01-team14/pandas/blob/3059a2bfdebfc8fe1d8502039668dfacdf2cefb5/pandas/core/indexes/datetimes.py#L529">_maybe_promote</a> function inside the datetimes.py is
+                    a potential location where this change could be applied, the tz of dates in date range can be used to promote the tz unware NaT when ever the target date does not have a tz.
+                </p>
+
+                </p>
+
+            </div>
+        </div>
+
+        <!-- issue 2 -->
+        <div class="panel" id="issue3" style="background-color: #CCDDCE; height: auto;">
+            <div class="panel-heading"><b>Feature Request: </b> "Skiprows" by a condition or set of conditions #32072</div>
+            <div class="panel-body">
+                <p><a href="https://github.com/pandas-dev/pandas/issues/32072" target="_blank">https://github.com/pandas-dev/pandas/issues/32072</a></p>
+                <p>
+                    Currently the functionality of reading a CSV file allows users to skip certain rows by indicating which row numbers they want to eliminate. Building upon this functionality, we would filter by the contents of each row. This would involve passing in a
+                    boolean function that would indicate the conditions for each column and any row that does not pass is eliminated from the import. This is similar to how skiprows currently takes in a callable (can be a lambda function) that returns
+                    a boolean and runs the row number on the callable to determine if the row should be kept or not. This would help improve usability and make trimming down input significantly easier than the current columns and workarounds.
+
+                </p>
+
+
+            </div>
+        </div>
+
+        <br>
+        <h2>The Chosen One</h2>
+        <section>
+            <h3>
+                <u><b>Feature Request: </b> "Skiprows" by a condition or set of conditions #32072</u>
+            </h3>
+
+            <div>
+                <p><b>Reason to Choose</b></p>
+                <p>
+                    Our goal for this project was to help researchers process their data. Imagine our surprise when the function used to read from comma-separated values files (csv files) was incomplete. A pandas user requested the ability to have the skiprows parameter
+                    of the read_csv function to accept conditions as one of its parameters. Veteran contributors gfyoung and jreback, even assumed this functionality to already exist and were taken aback that it did not exist. As one of the most basic
+                    yet most important file formats, an improvement to this will greatly contribute to the greater scientific community as many users use the read_csv function. Adding new features that users would assume to be there will be of great help
+                    to all future users, meeting our project goal.
+                </p>
+                <p><b>Implementation Ideation Details</b></p>
+                <p>
+                    Adding to the current functoinality of skiprows, we would take in a string, which using the table schema provided in dtype, would be run using query from pandas Datatype, allowing the rows that do not pass the boolean outlined to be removed from the resulting table.
+                </p>
+                <p><b>Choosing this feature over get_loc bug</b></p>
+                <p>
+                    get_loc, despite being an interesting issue, fails to be significani enough to put in the time and effort which we can use to add above mentioned functionality. The bug caused due to invalid NaT being passed in to get_indexer, can be fixed fairly easily
+                    by ensuring to cast NaT to tx aware Datetime Object. However, this doesn't fix the entire issue. The conversation on the issue page suggests, the result 0, for absent NaT in the date range is not valid and get_loc must return NaT.
+                    Although this could be worked upon, consequences of not fixing this functionality is not as effective as compared to the outcome skiprows feature. This is one of the reasons to chose skiprows over get_loc.
+                </p>
+                <p>
+                    <b>Acceptance Tests: </b> <a href="https://github.com/pandas-dev/pandas/commit/87266f44a18494d6d2ffba363603186399dd3cae" target="_blank">Link to github</a>
+                </p>
+
+
+            </div>
+
+            <h2>Architecture Document</h2>
+            <div id="overall-structure">
+                <h3><u>Overall Structure</u></h3>
+                <img src="./images/deliverable3/overall.png" alt="updated view of the architecture">
+                <p>
+                    If you compare it to our previous view, you can see that our entire view from before has been put in the “Core” component here, with less detail from before for clarity. We still have the PandasObject, Operation, and ExtensionDTypes as they are important
+                    to understanding the core component of the architecture. More detailed views of these core components can be found in our first overview of the architecture at <a href="https://d01-team14.netlify.com/#deliverable1">Deliverable 1</a>.
+                    As for the new components Plotting, IO, and Error, we included them as we found them to be important parts of the architecture when working on our issues in Deliverable 2. More detailed views and descriptions will follow, but these
+                    basically flesh out how the core functionality of pandas is viewed, used, and debugged.
+                </p>
+            </div>
+            <div id="tests">
+                <h3><u>Tests</u></h3>
+                <img src="./images/deliverable3/tests.png" alt="">
+                <hr class="style1">
+                <p>
+                    The first new component of pandas we learned about are the Tests. These have no direct relationship with how the code of pandas works, but for Deliverable 2 it was important to learn about it for making sure our changes are compatible with the rest of
+                    the codebase.
+
+                </p>
+                <p>
+                    For the structure of the tests, pandas has a pretty open test suite, which is likely a design decision for increasing the accessibility of open source contributions. By “open” I mean that there are clear categories for parts of the codebase (like testing
+                    how it uses Numpy in BaseNumPyTests, DecimalArrays in BaseDecimal, and SparseArrays in BaseSparseTests). Tests are placed in categories for organization, but also for holding functions that would be helpful for doing the tests in that
+                    category (ex. assert_series_equal(left, right) in BaseDecimal).
+
+                </p>
+                <p>There are also test suites that are not part of any category, and so they can just be placed anywhere in the tests folder, with an appropriate name and folder structure. An example of this is with TestTimedeltaMultiplicationDivision at
+                    tests/scalar/timedelta/test_arithmetic.py, a test suite that just inherits “object” and tests TimeDelta with multiplication, division, and floor operations.
+
+                </p>
+
+            </div>
+            <div id="errors">
+                <h3><u>Errors</u></h3>
+                <img src="./images/deliverable3/errors.png" alt="">
+                <p>
+                    We next learned more about Errors in pandas, which uses inheritance from Python’s Exception class to create similar errors and warnings specifically for pandas’ use. This design is used not only for neatly integrating pandas’ errors with Python’s standard
+                    ones, but also for more readable errors and warnings when pandas is being used incorrectly.
+                </p>
+
+                <p>
+                    An example error in pandas is an UnsortedIndexError. As you can see in the diagram, it is a child of KeyError. KeyError is Python’s own error for accessing data that does not exist using a key, like with dictionaries. UnsortedIndexError is thrown when
+                    you try to slice an index that has not been sorted yet, since pandas requires a sort before working with indices like that. Since this involves trying to access data that has not been formatted yet to be accessed by keys at all, pandas
+                    deems this a type of KeyError and constructs the design as such.
+                </p>
+                <p>
+                    Pandas also has Warnings, which is also a child of Exception and is just there to warn the user about there existing a more optimal way of using pandas. Some example warnings are for Performance, Parsing, and Dtypes.
+                </p>
+
+            </div>
+            <div id="io">
+                <h3><u>IO</u></h3>
+                <img src="./images/deliverable3/IO.png" alt="">
+                <p>
+                    Pandas also has an I/O component, which you could probably already assume is how it takes user input and outputs to the screen and file system. The three main parts of this IO component are the Parser, the Formatter, and the Writer.
+                </p>
+                <p>
+                    The Parser is used for taking input from files and directly creating a pandas structure from it. For example, pandas allows the user to input a json file in a specific format and create a Series or a DataFrame out of its data, which is good for holding
+                    large data on your system and importing it. Note that this is an example of the Factory design pattern: instead of directly calling a constructor, data types can be created by calling the Parser function. Note that the Parser uses
+                    NumPy because it calls their Parsers in certain scenarios.
+
+                </p>
+                <p>
+                    The Formatter is used for organizing all the string formats for pandas’ data types for easy output. This is useful for quickly viewing data, and it is incredibly important for pandas to have this because pandas has a lot of unique data types. The Writer
+                    is essentially the opposite of the Parser, it allows pandas to take data held in memory and write it to a file in the system, which can be read by the Parser at a later point.
+
+                </p>
+
+            </div>
+            <div id="plotting">
+                <h3><u>Plotting</u></h3>
+                <img src="./images/deliverable3/plotting.png" alt="">
+                <p>
+                    One more component we investigated in pandas was how pandas does Plotting. Here we see that pandas relies heavily on Matplotlib’s plotting functionality to display data. This design decision was made likely for the same reason pandas uses NumPy’s functionality
+                    in other places; reuse-oriented design in these parts allow for pandas to focus on other areas that make it unique, like their unique data structures and functions.
+
+                </p>
+                <p>
+                    As you can see, the Plotting part of pandas is pretty self-explanatory. There is a main MatplotlibPlot class that uses Matplotlib’s functionality to create a plot, and then specific plots under that to specify the types of plots made (bar, scatter, pie,
+                    histogram, etc.) Note that pandas still needs to make its own classes for each plot because it needs to isolate the functionality needed to translate pandas’ own data types to Matplotlib’s plotting interface.
+
+                </p>
+            </div>
+        </section>
+
+    </div>
+
+
 
     <script src="./js/main.js"></script>
 </body>
