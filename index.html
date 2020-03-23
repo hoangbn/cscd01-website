@@ -429,7 +429,7 @@
         </div>
 
         <!-- issue 2 -->
-        <div class="panel" style="background-color: #CCDDCE; height: auto;">
+        <div class="panel" id="get-loc" style="background-color: #CCDDCE; height: auto;">
             <div class="panel-heading"><b>Issue 2:</b> BUG: get_loc / get_indexer with NaT and tz-aware DatetimeIndex
             </div>
             <div class="panel-body">
@@ -702,10 +702,27 @@
                     <a href="https://github.com/pandas-dev/pandas/issues/32572" target="_blank">https://github.com/pandas-dev/pandas/issues/32572</a>
                 </p>
                 <p>
-                    <!-- description -->
-                    INSERT DESCRIPTION HERE
-                    <br> UML
-                    <br> DIAGRAM CODE TRACES
+                    Upon dropping this issue in <a href="#get-loc">previous deliverable</a> due the complexity and unexplored territory of handling operations on DateTimeIndex. The fix to this issue seemed as simple as adding additional login to get_indexer,
+                    where we can handle the case for NaT such that instead of searching for the “nearest” location of NaT, the get_loc function would return NaT since, it undefined behaviour to look for a time closest to “Not A Time”.
+
+                </p>
+                <p>
+                    However, there is more to this since an additional issue is that when the data range is tz aware, a TypeError exception occurs. This is because the get_loc function returns the location of a target by recursively calling get_indexer on the left and right
+                    of the DateTimeIndex and keeps subtracting the target from the Objects in the DateTimeIndex. Although this behavior returns a “0” for tz unaware dates , which by itself is inaccurate, the same behaviour is not replicated for tz aware
+                    dates due to an unhandled case.
+
+                </p>
+
+                <p>
+                    Consider searching for NaT in a tz aware date range. In this scenario, a dtype mismatch occurs between the objects in the DatetimeIndex and the target of the search. This is mainly because the NaT Datetime is not tz aware by default. Because of this reason
+                    both the Indexes (the date range and the target) are casted as dtype Objects inside the get_indexer function. This will not work for the indexer since the indexer is subtracting the target from the objects in the Date range. During
+                    the subtraction the Datetime Target Object is converted into DatetimeArray which cannot be subtracted from ndArray which holds the Date range
+
+                </p>
+
+                <p>
+                    Code Change: Inside the maybe_promote methods, casting NaT Datetime that is tz unaware into a tz aware Datetime will prevent the eventual mismatch and will not throw a type error. Get_loc for tz aware date range at this point will behave similarly as
+                    tz unaware dates
 
                 </p>
 
@@ -718,10 +735,12 @@
             <div class="panel-body">
                 <p><a href="https://github.com/pandas-dev/pandas/issues/32072" target="_blank">https://github.com/pandas-dev/pandas/issues/32072</a></p>
                 <p>
-                    INSERT DESCRIPTION HERE
-                    <br> UML
-                    <br> DIAGRAM CODE TRACES
+                    Currently the functionality of reading a CSV file allows users to skip certain rows by indicating which row numbers they want to eliminate. Building upon this functionality, we would filter by the contents of each row. This would involve passing in a
+                    boolean function that would indicate the conditions for each column and any row that does not pass is eliminated from the import. This is similar to how skiprows currently takes in a callable (can be a lambda function) that returns
+                    a boolean and runs the row number on the callable to determine if the row should be kept or not. This would help improve usability and make trimming down input significantly easier than the current columns and workarounds.
+
                 </p>
+
 
             </div>
         </div>
@@ -734,19 +753,26 @@
             </h3>
 
             <div>
-                <ul>
-                    <li>
-                        INSERT reasons to select the issue
-                    </li>
-                    <li>
-                        DETAILED IMPLEMENTATION PLANS
-
-                    </li>
-                    <li>
-                        link to acceptance tests?
-
-                    </li>
-                </ul>
+                <p><b>Reason to Choose</b></p>
+                <p>
+                    Our goal for this project was to help researchers process their data. Imagine our surprise when the function used to read from comma-separated values files (csv files) was incomplete. A pandas user requested the ability to have the skiprows parameter
+                    of the read_csv function to accept conditions as one of its parameters. Veteran contributors gfyoung and jreback, even assumed this functionality to already exist and were taken aback that it did not exist. As one of the most basic
+                    yet most important file formats, an improvement to this will greatly contribute to the greater scientific community as many users use the read_csv function. Adding new features that users would assume to be there will be of great help
+                    to all future users, meeting our project goal.
+                </p>
+                <p><b>Implementation Details</b></p>
+                <p>
+                    IMPLEMENTATION DETAILS
+                </p>
+                <p><b>Choosing this feature over get_loc bug</b></p>
+                <p>
+                    get_loc, despite being an interesting issue, fails to be significani enough to put in the time and effort which we can use to add above mentioned functionality. The bug caused due to invalid NaT being passed in to get_indexer, can be fixed fairly easily
+                    by ensuring to cast NaT to tx aware Datetime Object. However, this doesn't fix the entire issue. The conversation on the issue page suggests, the result 0, for absent NaT in the date range is not valid and get_loc must return NaT.
+                    Although this could be worked upon, consequences of not fixing this functionality is not as effective as compared to the outcome skiprows feature. This is one of the reasons to chose skiprows over get_loc.
+                </p>
+                <p>
+                    <b>Acceptance Tests: </b> <a href="https://github.com/pandas-dev/pandas/commit/87266f44a18494d6d2ffba363603186399dd3cae" target="_blank">Link to github</a>
+                </p>
 
 
             </div>
