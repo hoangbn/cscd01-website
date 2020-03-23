@@ -751,16 +751,89 @@
 
             </div>
 
-            <h3><u>Architecture Document</u></h3>
-            <div>
-                <ul>
-                    <li>INSERT Architecture Description</li>
-                    <li>
-                        UML
-                    </li>
-                </ul>
+            <h2>Architecture Document</h2>
+            <div id="overall-structure">
+                <h3><u>Overall Structure</u></h3>
+                <img src="./images/deliverable3/overall.png" alt="updated view of the architecture">
+                <p>
+                    If you compare it to our previous view, you can see that our entire view from before has been put in the “Core” component here, with less detail from before for clarity. We still have the PandasObject, Operation, and ExtensionDTypes as they are important
+                    to understanding the core component of the architecture. More detailed views of these core components can be found in our first overview of the architecture at <a href="https://d01-team14.netlify.com/#deliverable1">Deliverable 1</a>.
+                    As for the new components Plotting, IO, and Error, we included them as we found them to be important parts of the architecture when working on our issues in Deliverable 2. More detailed views and descriptions will follow, but these
+                    basically flesh out how the core functionality of pandas is viewed, used, and debugged.
+                </p>
             </div>
+            <div id="tests">
+                <h3><u>Tests</u></h3>
+                <img src="./images/deliverable3/tests.png" alt="">
+                <hr class="style1">
+                <p>
+                    The first new component of pandas we learned about are the Tests. These have no direct relationship with how the code of pandas works, but for Deliverable 2 it was important to learn about it for making sure our changes are compatible with the rest of
+                    the codebase.
 
+                </p>
+                <p>
+                    For the structure of the tests, pandas has a pretty open test suite, which is likely a design decision for increasing the accessibility of open source contributions. By “open” I mean that there are clear categories for parts of the codebase (like testing
+                    how it uses Numpy in BaseNumPyTests, DecimalArrays in BaseDecimal, and SparseArrays in BaseSparseTests). Tests are placed in categories for organization, but also for holding functions that would be helpful for doing the tests in that
+                    category (ex. assert_series_equal(left, right) in BaseDecimal).
+
+                </p>
+                <p>There are also test suites that are not part of any category, and so they can just be placed anywhere in the tests folder, with an appropriate name and folder structure. An example of this is with TestTimedeltaMultiplicationDivision at
+                    tests/scalar/timedelta/test_arithmetic.py, a test suite that just inherits “object” and tests TimeDelta with multiplication, division, and floor operations.
+
+                </p>
+
+            </div>
+            <div id="errors">
+                <h3><u>Errors</u></h3>
+                <img src="./images/deliverable3/errors.png" alt="">
+                <p>
+                    We next learned more about Errors in pandas, which uses inheritance from Python’s Exception class to create similar errors and warnings specifically for pandas’ use. This design is used not only for neatly integrating pandas’ errors with Python’s standard
+                    ones, but also for more readable errors and warnings when pandas is being used incorrectly.
+                </p>
+
+                <p>
+                    An example error in pandas is an UnsortedIndexError. As you can see in the diagram, it is a child of KeyError. KeyError is Python’s own error for accessing data that does not exist using a key, like with dictionaries. UnsortedIndexError is thrown when
+                    you try to slice an index that has not been sorted yet, since pandas requires a sort before working with indices like that. Since this involves trying to access data that has not been formatted yet to be accessed by keys at all, pandas
+                    deems this a type of KeyError and constructs the design as such.
+                </p>
+                <p>
+                    Pandas also has Warnings, which is also a child of Exception and is just there to warn the user about there existing a more optimal way of using pandas. Some example warnings are for Performance, Parsing, and Dtypes.
+                </p>
+
+            </div>
+            <div id="io">
+                <h3><u>IO</u></h3>
+                <img src="./images/deliverable3/IO.png" alt="">
+                <p>
+                    Pandas also has an I/O component, which you could probably already assume is how it takes user input and outputs to the screen and file system. The three main parts of this IO component are the Parser, the Formatter, and the Writer.
+                </p>
+                <p>
+                    The Parser is used for taking input from files and directly creating a pandas structure from it. For example, pandas allows the user to input a json file in a specific format and create a Series or a DataFrame out of its data, which is good for holding
+                    large data on your system and importing it. Note that this is an example of the Factory design pattern: instead of directly calling a constructor, data types can be created by calling the Parser function. Note that the Parser uses
+                    NumPy because it calls their Parsers in certain scenarios.
+
+                </p>
+                <p>
+                    The Formatter is used for organizing all the string formats for pandas’ data types for easy output. This is useful for quickly viewing data, and it is incredibly important for pandas to have this because pandas has a lot of unique data types. The Writer
+                    is essentially the opposite of the Parser, it allows pandas to take data held in memory and write it to a file in the system, which can be read by the Parser at a later point.
+
+                </p>
+
+            </div>
+            <div id="plotting">
+                <h3><u>Plotting</u></h3>
+                <img src="./images/deliverable3/plotting.png" alt="">
+                <p>
+                    One more component we investigated in pandas was how pandas does Plotting. Here we see that pandas relies heavily on Matplotlib’s plotting functionality to display data. This design decision was made likely for the same reason pandas uses NumPy’s functionality
+                    in other places; reuse-oriented design in these parts allow for pandas to focus on other areas that make it unique, like their unique data structures and functions.
+
+                </p>
+                <p>
+                    As you can see, the Plotting part of pandas is pretty self-explanatory. There is a main MatplotlibPlot class that uses Matplotlib’s functionality to create a plot, and then specific plots under that to specify the types of plots made (bar, scatter, pie,
+                    histogram, etc.) Note that pandas still needs to make its own classes for each plot because it needs to isolate the functionality needed to translate pandas’ own data types to Matplotlib’s plotting interface.
+
+                </p>
+            </div>
         </section>
 
     </div>
