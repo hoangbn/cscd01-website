@@ -50,6 +50,7 @@
                     <li class="dropdown">
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Deliverables <span class="caret"></span></a>
                         <ul class="dropdown-menu">
+                            <li><a href="#deliverable4">deliverable 4</a></li>
                             <li><a href="#deliverable3">deliverable 3</a></li>
                             <li><a href="#deliverable2">deliverable 2</a></li>
                             <li><a href="#deliverable1">deliverable 1</a></li>
@@ -227,7 +228,7 @@
         </div>
     </div>
 
-    <div class="container-fluid wide" id="deliverable1" style="background-color: #CCDDCE; height: auto;">
+    <div class="container-fluid wide deliverable" id="deliverable1" style="background-color: #CCDDCE; height: auto;">
         <h1 class="text-center">Deliverable 1</h1>
 
         <h2>Architecture of Pandas</h2>
@@ -405,7 +406,7 @@
     </div>
     <!-- deliverable 2 -->
     <hr class="style1">
-    <div class="container-fluid wide" id="deliverable2" style="background-color: #CCDDCE; height: auto;">
+    <div class="container-fluid wide deliverable" id="deliverable2" style="background-color: #CCDDCE; height: auto;">
         <h1 class="text-center">Deliverable 2</h1>
 
         <h2>Picked 6 Bugs or features</h2>
@@ -688,7 +689,7 @@
 
     <!-- deliverable 3 -->
     <hr class="style1">
-    <div class="container-fluid wide" id="deliverable3" style="background-color: #CCDDCE; height: auto;">
+    <div class="container-fluid wide deliverable" id="deliverable3" style="background-color: #CCDDCE; height: auto;">
         <h1 class="text-center">Deliverable 3</h1>
 
         <h2>Descriptions of Two selected issues/features</h2>
@@ -866,6 +867,486 @@
 
     </div>
 
+    <hr class="style1">
+    <div class="container-fluid wide deliverable" id="deliverable4" style="background-color: #CCDDCE; height: auto;">
+      <h1 class="text-center">Deliverable 4</h1>
+
+      <h2>User Guide</h2>
+      <p>
+        <strong>skiprows : callable, optional (Option for read_csv())</strong>
+      </p>
+      <p>
+        Lines to skip based on the callable function. The callable function will be evaluated against the row values, returning True if a row should be skipped and False otherwise. 
+        An example of a valid callable argument would be: <em>“col_1 > 2 and col_3 == 4”</em>
+      </p>
+      <p>To use, first create a callable as a string:
+        <div class="tabbed"><em>mask = "(area &gt; 8.516 or area &lt; 3.286)"</em></div></p>
+      <p>
+        Then add in the skiprows parameter to your read_csv function.
+        <div class="tabbed"><em>df = pd.read_csv('brics.csv', skiprows=mask, dtype=schema)</em></div>
+      </p>
+
+      <h2>Design Document</h2>
+      
+      <h3>Overview of Feature</h3>
+      <p>
+        Before our implementation, pandas was missing the functionality to skip rows based on a string query. This way users can filter rows based on its contents, instead of just the row numbers which is all that the current skiprows supports.
+      </p>
+      <p>
+        This would involve passing in a boolean query that would indicate the conditions for each column (like “population > 1200”) and any row that does not pass is eliminated from the import. 
+        This would help improve usability and make trimming down input significantly easier than current workarounds.
+      </p>
+
+      <h3>Investigating the Relevant Code</h3>
+      <p>
+        For our implementation, we made sure to investigate where would be the best place to put in our changes. Reading a csv in pandas involves several levels going all the way down to the io layer, which is written in c (more specifically, Cython) to increase efficiency.
+      </p>
+      <p>
+        Here is a high level trace of the essential and relevant pieces of code when reading a csv:
+      </p>
+      <img src="images/deliverable4/overview.png" alt="">
+      <p>
+        <br/>
+        <u>read_csv</u>: <a href="https://github.com/pandas-dev/pandas/blob/master/pandas/io/parsers.py#L683">https://github.com/pandas-dev/pandas/blob/master/pandas/io/parsers.py#L683</a><br/>
+        This would help improve usability and make trimming down input significantly easier than current workarounds.
+      </p>
+      <p>
+        <u>TextFileReader</u>: <a href="https://github.com/pandas-dev/pandas/blob/master/pandas/io/parsers.py#L449">https://github.com/pandas-dev/pandas/blob/master/pandas/io/parsers.py#L449</a><br/>
+        This is the python object used for managing all the data read in a text file. In this case it is a csv file, but the data is treated the same: holding the rows, columns, and metadata about the file. The TextFileReader has several useful functions like read() that we will be following to see how it interacts with the actual files.
+      </p>
+      <p>
+        <u>TextFileReader.read()</u>: <a href="https://github.com/pandas-dev/pandas/blob/master/pandas/io/parsers.py#L1128">https://github.com/pandas-dev/pandas/blob/master/pandas/io/parsers.py#L1128</a><br/>
+        This is where the TextFileReader interacts with Cython and the c file. Specifically, it calls it’s engine (c or Python)’s parser to get the data from the specified file and then organizes it into columns and rows in the TextFileReader’s attributes. This is then passed back up to read_csv as readable data in a Dataframe format.  
+      </p>
+      <p>
+        <u>Tokenize_bytes()</u>: <a href="https://github.com/pandas-dev/pandas/blob/master/pandas/_libs/src/parser/tokenizer.c#L711">https://github.com/pandas-dev/pandas/blob/master/pandas/_libs/src/parser/tokenizer.c#L711</a><br/>
+        This is where the c file reads the data from the file. It is called tokenizer because it treats each character and string in the file as a token, and depending on what the token is it modifies the data sent eventually sent back up to TextFileReader. It uses a switch case to go token by token in a line by line format, checking whether the current token is a character to add on to the previous token, a delimiter, a new line, and so on. Note that at any point in the tokenizer file, the strings are only treated as strings or characters.   
+      </p>
+      <p>
+        Skiprows comes into play here by keeping a counter of what row the tokenizer is at. If the current row is one to be skipped as specified by the list of rows, the number of rows from the start, or the lambda function, then the tokenizer just goes to the next new line and therefore ignores the specified row.
+      </p>
+
+      <h3>Details for Implementation</h3>
+      <p>
+        For our implementation, we decided to make use of pandas query() function to ensure better integration with the code. The pandas query function takes in a dataframe and a boolean expression and filters the dataframe based on whether the specified column values pass or fail the boolean expression. An example of this would be to filter out certain cities in Ontario based on population, assuming there is a “population” column you can pass in the full dataframe with the data and then query “(population > 1200)”. 
+      </p>
+      <p>
+        By using query when the Dataframe is created we can ensure that our code is depending on query functionality already existing in pandas. This allows for easier integration in the code, with the added benefit of not needing to specifically change how the filter works in read_csv if new changes in query are made. This allows for a way for the users to easily filter out data from their csvs when importing it into pandas.
+      </p>
+      <p>
+        The reason we did not edit the actual tokenizer.c file to filter the rows is due to the current implementation. As we mentioned before, the tokenizer file that reads in the data for the csvs is done reading the file as one would normally do it: reading left to right, line by line. Skipping specific rows by row numbers in this format is easy because one would just need to keep a counter for what the current row is, and skip to the next line if the current one needs to be skipped. This is why the current skiprows functionality only focuses on specific row numbers.
+      </p>
+      <p>
+        However, skipping rows based on specific column values with this format is not feasible. For example, say you wanted to skip a row based on whether its fifth column value. To do this with the current implementation of reading csvs, we would have to read the first five column values anyways, to know where the fifth value is located. We would also have to implement a way to translate the tokens into pandas comparable format, since they are all treated as strings in the tokenizer. This is why we went with implementing the query functionality when the Dataframe is actually created.
+      </p>
+      <p>
+        With the code changes specified in this commit <a href="https://github.com/CSCD01-team14/pandas/commit/4c2dd8f418b17cb75aa6f2359756892263da7c16">link</a>, we have our new sequence diagram:
+      </p>
+      <img src="images/deliverable4/overview2.png" alt="">
+
+      <h2>Acceptance Tests</h2>
+      <h3>Acceptance Test #1:</h3>
+      <p>
+        The ‘customer’ (issue creator) provided this example file<br/>
+        <em># data file path: foo/bar/data.csv</em>
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>col_1</th>
+          <th>col_2</th>
+          <th>...</th>
+          <th>col_n</th>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>940</td>
+          <td>15</td>
+          <td>...</td>
+          <td>0.023</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>1040</td>
+          <td>52</td>
+          <td>...</td>
+          <td>0.430</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>1530</td>
+          <td>52</td>
+          <td>...</td>
+          <td>0.302</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>753</td>
+          <td>43</td>
+          <td>...</td>
+          <td>0.450</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>890</td>
+          <td>32</td>
+          <td>...</td>
+          <td>0.023</td>
+        </tr>
+      </table>
+      <p>
+        They can establish the following schema for the types:<br/>
+        <em>
+          schema={"col_1": int, ..., "col_n": float}
+        </em>
+      </p>
+      <p>
+        Then create a boolean query function in a string which we will call ‘mask’:
+        <br/><em>mask = "col_1 &geq; 1000</em>
+      </p>
+      <p>
+        Now when they read from the file (with read_csv) and include the skiprows parameter:
+        <br/><em>df = pd.read_csv('foo/bar/data.csv', skiprows=mask, dtype=schema)</em>
+      </p>
+      <p>
+        They will be able to skip over rows based on this boolean condition and should expect a result like:
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>col_1</th>
+          <th>col_2</th>
+          <th>...</th>
+          <th>col_n</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>1040</td>
+          <td>52</td>
+          <td>...</td>
+          <td>0.430</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>1530</td>
+          <td>52</td>
+          <td>...</td>
+          <td>0.302</td>
+        </tr>
+      </table>
+
+      <h3>Acceptance Test #2:</h3>
+      <p>
+        The ‘customer’ would have an expected input similar to this file:<br/>
+        <em>#brics.csv</em>
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>country</th>
+          <th>capital</th>
+          <th>area</th>
+          <th>population</th>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>Brazil</td>
+          <td>Brasilia</td>
+          <td>8.516</td>
+          <td>200.4</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>Russia</td>
+          <td>Moscow</td>
+          <td>17.10</td>
+          <td>143.5</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>India</td>
+          <td>New Delhi</td>
+          <td>3.286</td>
+          <td>1252</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>China</td>
+          <td>Beijing</td>
+          <td>9.597</td>
+          <td>1357</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>South Africa</td>
+          <td>Pretoria</td>
+          <td>1.221</td>
+          <td>52.98</td>
+        </tr>
+      </table>
+      <p>
+        They can establish the following schema for the types:<br/>
+        <em>
+          schema={"country": String, "capital": String, "area": int, "population": int}
+        </em>     
+      </p>
+      <p>
+        Then create a boolean query function in a string which we will call ‘mask’:
+        <br/><em>mask = "area &lt; 8.516"</em>
+      </p>
+      <p>
+        Now when they read from the file (with read_csv) and include the skiprows parameter:
+        <br/><em>df = pd.read_csv('brics.csv', skiprows=mask, dtype=schema)</em>
+      </p>
+      <p>
+        They will be able to skip over rows based on this boolean condition and should expect a result like:
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>country</th>
+          <th>capital</th>
+          <th>area</th>
+          <th>population</th>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>India</td>
+          <td>New Delhi</td>
+          <td>3.286</td>
+          <td>1252</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>South Africa</td>
+          <td>Pretoria</td>
+          <td>1.221</td>
+          <td>52.98</td>
+        </tr>
+      </table>
+
+      <h3>Acceptance Test #3:</h3>
+      <p>
+        The ‘customer’ would have an expected input similar to this file:<br/>
+        <em>#brics.csv</em>
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>country</th>
+          <th>capital</th>
+          <th>area</th>
+          <th>population</th>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>Brazil</td>
+          <td>Brasilia</td>
+          <td>8.516</td>
+          <td>200.4</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>Russia</td>
+          <td>Moscow</td>
+          <td>17.10</td>
+          <td>143.5</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>India</td>
+          <td>New Delhi</td>
+          <td>3.286</td>
+          <td>1252</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>China</td>
+          <td>Beijing</td>
+          <td>9.597</td>
+          <td>1357</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>South Africa</td>
+          <td>Pretoria</td>
+          <td>1.221</td>
+          <td>52.98</td>
+        </tr>
+      </table>
+      <p>
+        They can establish the following schema for the types:<br/>
+        <em>
+          schema={"country": String, "capital": String, "area": int, "population": int}
+        </em>     
+      </p>
+      <p>
+        Then create a boolean query function in a string which we will call ‘mask’. Note that this is a bi-conditional and is in fact, an example of working multi-conditional queries:
+        <br/><em>mask = "(area &leq; 8.516 and population &gt; 1200)"</em>
+      </p>
+      <p>
+        Now when they read from the file (with read_csv) and include the skiprows parameter:
+        <br/><em>df = pd.read_csv('brics.csv', skiprows=mask, dtype=schema)</em>
+      </p>
+      <p>
+        They will be able to skip over rows based on this boolean condition and should expect a result like:
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>country</th>
+          <th>capital</th>
+          <th>area</th>
+          <th>population</th>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>China</td>
+          <td>Beijing</td>
+          <td>9.597</td>
+          <td>1357</td>
+        </tr>
+      </table>
+
+      <h3>Acceptance Test #4:</h3>
+      <p>
+        The ‘customer’ would have an expected input similar to this file:<br/>
+        <em>#sales.csv</em>
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>item</th>
+          <th>employee</th>
+          <th>cost</th>
+          <th>quantity</th>
+        </tr>
+        <tr>
+          <td>0</td>
+          <td>Coke</td>
+          <td>Bob</td>
+          <td>2.99</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>Chips</td>
+          <td>Bob</td>
+          <td>1.59</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Milk</td>
+          <td>Alice</td>
+          <td>6.49</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>KitKat</td>
+          <td>Alice</td>
+          <td>1.99</td>
+          <td>2</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Coke</td>
+          <td>Mallory></td>
+          <td>2.99</td>
+          <td>1</td>
+        </tr>
+      </table>
+      <p>
+        They can establish the following schema for the types:<br/>
+        <em>
+          schema={"item": str,
+          "employee": str,
+          "cost": float,
+          "quantity": int}
+        </em>     
+      </p>
+      <p>
+        Then create a boolean query function in a string which we will call ‘mask’:
+        <br/><em>mask = "employee == ‘Alice’"</em>
+      </p>
+      <p>
+        Now when they read from the file (with read_csv) and include the skiprows parameter:
+        <br/><em>df = pd.read_csv(sales.csv', skiprows=mask, dtype=schema)</em>
+      </p>
+      <p>
+        They will be able to skip over rows based on this boolean condition and should expect a result like:
+      </p>
+      <table class="dataframe-table">
+        <tr>
+          <th/>
+          <th>item</th>
+          <th>employee</th>
+          <th>cost</th>
+          <th>quantity</th>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>Milk</td>
+          <td>Alice</td>
+          <td>6.49</td>
+          <td>1</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>KitKat</td>
+          <td>Alice</td>
+          <td>1.99</td>
+          <td>2</td>
+        </tr>
+      </table>
+
+      <h2>Evidence of good software development process</h2>
+      <p>
+        <a href="https://trello.com/invite/b/8KyMbjlR/ff45084ba20293d4ef1b9ade92b5177c/cscd01">https://trello.com/invite/b/8KyMbjlR/ff45084ba20293d4ef1b9ade92b5177c/cscd01</a>
+      </p>
+      <p>
+        By drawing from our experience using Kanban in previous deliverables and building upon the process we adopted in D3 we realized the need to add a few rules from XP to enable us to focus on getting things done more collaboratively and efficiently:
+      </p>
+      <ul>
+        <li>
+          Investigating the feature to be added required a coherent approach with efficient use of time for tracing the code. It would be unproductive for all developers to trace the code for a few days and potentially misunderstanding the implementation of the existing architecture. We carried out “pair programming” (in this case investigating and tracing the code in pairs) virtually as effectively as possible before the implementation, by having smaller groups of team members work closely towards a specific part of investigation e.g. tracing the C engine for skiprows vs usage of df.query in pandas
+        </li>
+        <li>
+          Lack of synchronous meetings caused some gaps in communications that would eventually make subsequent communication in meetings, time-consuming. To tackle this, in addition to asynchronous updates in #standups, we decided to have virtual standups every day via discord audio channel. Here, we re-group and discuss tasks that are blocking us from moving forward. This also includes bridging the gap between the aforementioned subgroups, so we can ensure that we are on the same page and continue to move towards the same direction. Meetings were rapidly scheduled using when2meets after finishing a standup.
+        </li>
+        <li>
+          We moved from Github Boards to Trello since more flexibility was required in defining and assigning each task. Using Trello also helped outline a more structured approach to our existing process
+            <ul>
+                <li>
+                  We used due dates for each task. This helps us give our daily standups a starting point i.e What’s due and what’s delayed.
+                </li>
+                <li>
+                  We used the process power-Up in Trello to encapsulate blocked status of tasks or issues to help us resolve it more effectively.
+                  <img src="images/deliverable4/trello.png" alt="">
+                </li>
+                <li>
+                  The power-up attaches a “Process” to a Card with a list, that refers to related to the trello cards, each having the states “Open”, “Started” or “Done”. A state of “On Hold” is automatically assigned to a subtask if previous tasks before a holding point, are not “Done”
+                  <br/><img src="images/deliverable4/trellocards.png" style="width: 40%" alt="">
+                </li>
+                <li>
+                  This allows the Kanban board to do the most of the communication during the daily standups and especially during the day when we are not in contact and work on individual tasks    
+                </li>
+            </ul>
+        </li>
+      </ul>
+
+      <h3>Benefits of adding aspects of XP while using Kanban</h3>
+      <p>
+        Task distribution became fairly natural since during the initial stage of Understanding the specific aspect of the architecture for implementing the feature was done collaboratively and in pairs. This helped each of the team members to selectively choose the tasks that they were suitable for by drawing upon their interactions with the fellow team member they worked with
+      </p>
+      <p>
+        A Stricter priority of work, combined with daily standups where we reflect on the holding points of our process on the Kanban board helped us maintain the consistency of the process resulting in meeting daily and weekly deadlines more successfully as we approached the submission date.
+      </p>
+      <img src="images/deliverable4/kanban.PNG" alt="">
+
+
+    </div>
 
 
     <script src="./js/main.js"></script>

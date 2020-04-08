@@ -109,58 +109,71 @@ h1 {
     width: 150px;
 }
 
-#deliverable1 p,
-table {
+.deliverable {
     font-size: 18px;
 }
 
-#deliverable1 li {
+.deliverable li {
     font-size: 18px;
     margin-bottom: 5px;
 }
 
-#deliverable1 h2 {
+.deliverable h2 {
     text-align: center;
     margin-top: 40px;
 }
 
-#deliverable1 h3 {
+.deliverable h3 {
     margin-top: 25px;
 }
 
-#deliverable1 h4 {
+.deliverable h4 {
     font-size: 20px;
     margin-top: 20px;
 }
 
-#deliverable1 img {
+.deliverable img {
     width: 100%
 }
 
-#deliverable1 table {
+.deliverable table {
     border: 1px solid black;
     border-collapse: collapse;
     width: 100%;
 }
 
-#deliverable1 th {
+.deliverable th {
     text-align: center;
 }
 
-#deliverable1 th,
+.deliverable th,
 td {
     border: 1px solid black;
     padding: 10px;
 }
 
-#deliverable2,
-#deliverable3 {
-    font-size: 18px;
+#deliverable4 td {
+  text-align: center;
 }
 
-#deliverable2 img,
-#deliverable3 img {
-    width: 100%
+.dataframe-table {
+  width: inherit !important;
+  border: none !important;
+  font-style: italic;
+  margin-bottom: 10px;
+}
+
+.dataframe-table td {
+  text-align: center;
+}
+
+.dataframe-table th, td {
+  border: none;
+  padding: 2px 10px;
+}
+
+#deliverable4 .no-border {
+  border: none;
 }
 
 .panel {
